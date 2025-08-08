@@ -41,24 +41,40 @@ class Market:
         Items = self.view_menu()
         options = []
         for item_dict in Items:
-            quantity = 0
-            if agent.money > item_dict['price'] + quantity*item_dict['price']:
-               quantity+=1
-            tspq = (quantity*item_dict['saturation_value'])/quantity*item_dict['price']
-            options.append({'name':item_dict['name'],'quantity':quantity,'tspq':tspq})
+            quantity = agent.money//item_dict['price']
+            if quantity == 0:
+                continue
             
-    
-    def buy(self,item:str,quantity:int,agent:Bot):
-        Items = self.view_menu()
+            tspq = (item_dict['info']['saturation_value'])/item_dict['price']
+            options.append({'name':item_dict['name'],'quantity':quantity,'tspq':tspq})
+        
+        if not options:
+            return False
+        viable_option = max(options, key=lambda x: x['tspq'])
+        return viable_option
+
+    def buy(self,agent:Bot):
         agent.current_action = 'Buying'
+
+        Items = self.view_menu()
+        viable_option = self.analyze_goods(agent)
+
+        if not viable_option:
+            return False
+
+        item = viable_option['name']
+        quantity = viable_option['quantity']
+
+        
         food_order = None
+
         for item_dict in Items:
             if item == item_dict['name']:
                 food_order = item_dict
                 break
 
         if not food_order:
-            return f'item {item} not found'
+            return False
         
         agent.money-=food_order['price']*quantity
 
@@ -70,6 +86,7 @@ class Market:
             
         #if item doesnt exist in inventory    
         agent.food.append({'name':food_order['name'],'quantity':quantity,'info':food_order['info']})
+        return f'Added {quantity}  {food_order["name"]} '
 
 class Job:
     def __init__(self,agent:Bot):
@@ -83,3 +100,14 @@ class Job:
         agent.energy-=0.1
         agent.mood+=0.05
         
+class Fun:
+    def __init__(self,agent:Bot):
+        self.location = 'Fun Place'
+        agent.location = self.location
+        agent.current_action = 'Enjoying life.'
+    
+    @staticmethod
+    def party(agent:Bot):
+        agent.money-=10
+        agent.energy-=0.2
+        agent.mood+=0.2
